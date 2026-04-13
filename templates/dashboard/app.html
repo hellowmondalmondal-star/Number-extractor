@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Number Extractor Workspace</title>
+    <style>
+        :root {
+            --sand: #f6f0e5;
+            --paper: rgba(255, 252, 245, 0.92);
+            --ink: #171511;
+            --muted: #6d665d;
+            --brand: #b4522e;
+            --brand-2: #dfb167;
+            --line: rgba(110, 92, 74, 0.18);
+            --ok: #20715d;
+            --warn: #b87322;
+            --bad: #9f2d2d;
+            --shadow: 0 18px 60px rgba(28, 24, 19, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Avenir Next", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top right, rgba(223, 177, 103, 0.28), transparent 24%),
+                radial-gradient(circle at left, rgba(180, 82, 46, 0.14), transparent 30%),
+                linear-gradient(180deg, #fbf7ef 0%, var(--sand) 100%);
+        }
+
+        .shell {
+            max-width: 1360px;
+            margin: 0 auto;
+            padding: 28px 18px 60px;
+        }
+
+        .hero {
+            display: grid;
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .eyebrow {
+            width: fit-content;
+            padding: 9px 14px;
+            border-radius: 999px;
+            background: rgba(223, 177, 103, 0.3);
+            border: 1px solid rgba(180, 82, 46, 0.16);
+            font-size: 12px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2.3rem, 7vw, 5rem);
+            line-height: 0.9;
+            max-width: 11ch;
+        }
+
+        .hero-copy {
+            max-width: 70ch;
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 1.04rem;
+        }
+
+        .topbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: center;
+            padding: 22px 24px;
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            background: var(--paper);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(16px);
+            margin-bottom: 20px;
+        }
+
+        .brandblock {
+            display: grid;
+            gap: 8px;
+        }
+
+        .brandline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            font-size: 0.85rem;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--warn);
+        }
+
+        .dot.live { background: var(--ok); }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        button,
+        .button-link,
+        input,
+        select {
+            font: inherit;
+        }
+
+        button,
+        .button-link {
+            border: 1px solid transparent;
+            border-radius: 16px;
+            padding: 12px 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+            text-decoration: none;
+        }
+
+        button:hover,
+        .button-link:hover {
+            transform: translateY(-1px);
+        }
+
+        .primary {
+            background: linear-gradient(135deg, var(--brand), #d47d57);
+            color: white;
+            box-shadow: 0 14px 30px rgba(180, 82, 46, 0.25);
+        }
+
+        .secondary {
+            background: white;
+            color: var(--ink);
+            border-color: var(--line);
+        }
+
+        .ghost {
+            background: transparent;
+            color: var(--ink);
+            border-color: var(--line);
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 18px;
+        }
+
+        .stack {
+            display: grid;
+            gap: 18px;
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            background: var(--paper);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(16px);
+            overflow: hidden;
+        }
+
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 22px 22px 10px;
+        }
+
+        .panel-title {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .panel-copy {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .panel-body {
+            padding: 0 22px 22px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+        }
+
+        .stat {
+            padding: 18px;
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(245, 236, 224, 0.8));
+            border: 1px solid rgba(110, 92, 74, 0.12);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .field {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .field label {
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        input,
+        select {
+            width: 100%;
+            border-radius: 16px;
+            border: 1px solid rgba(110, 92, 74, 0.2);
+            background: rgba(255,255,255,0.92);
+            padding: 14px 16px;
+            color: var(--ink);
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .message {
+            margin: 0 0 16px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.8);
+            border: 1px solid rgba(110, 92, 74, 0.15);
+            color: var(--muted);
+        }
+
+        .message.success {
+            background: rgba(32, 113, 93, 0.08);
+            border-color: rgba(32, 113, 93, 0.18);
+            color: var(--ok);
+        }
+
+        .message.error {
+            background: rgba(159, 45, 45, 0.08);
+            border-color: rgba(159, 45, 45, 0.18);
+            color: var(--bad);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(110, 92, 74, 0.12);
+            vertical-align: top;
+        }
+
+        th {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 7px 10px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            background: rgba(255,255,255,0.75);
+            border: 1px solid rgba(110, 92, 74, 0.12);
+        }
+
+        .status-pill.completed { color: var(--ok); }
+        .status-pill.processing { color: var(--warn); }
+        .status-pill.failed { color: var(--bad); }
+
+        .mini-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .mini-actions button {
+            padding: 10px 12px;
+            border-radius: 12px;
+            font-size: 0.88rem;
+        }
+
+        .activity-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .activity-item {
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(110, 92, 74, 0.12);
+            background: rgba(255,255,255,0.65);
+        }
+
+        .activity-item strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .admin-grid {
+            display: grid;
+            gap: 18px;
+        }
+
+        @media (max-width: 1100px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+
+            .panel-head,
+            .panel-body {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+
+            .topbar {
+                padding: 18px 16px;
+            }
+
+            .shell {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            thead {
+                display: none;
+            }
+
+            td {
+                padding: 10px 0;
+            }
+
+            td::before {
+                content: attr(data-label);
+                display: block;
+                margin-bottom: 6px;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                font-size: 0.76rem;
+                color: var(--muted);
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="hero">
+            <div class="eyebrow">Browser Workspace</div>
+            <h1>Upload. Extract. Export.</h1>
+        </section>
+
+        <section class="topbar">
+            <div class="brandblock">
+                <div class="brandline">
+                    <strong>Number Extractor SaaS</strong>
+                    <span class="badge">
+                        <span id="session-dot" class="dot"></span>
+                        <span id="session-label">Signed out</span>
+                    </span>
+                    <span id="role-pill" class="badge hidden"></span>
+                </div>
+                <span id="whoami" class="muted">Use your admin or agent account to access the product.</span>
+            </div>
+            <div class="actions">
+                <button id="refresh-button" class="secondary hidden" type="button">Refresh Data</button>
+                <button id="logout-button" class="ghost hidden" type="button">Logout</button>
+            </div>
+        </section>
+
+        <div id="app-message" class="message">Log in to start using the browser workspace.</div>
+
+        <section class="layout">
+            <div class="stack">
+                <article id="login-panel" class="panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2 class="panel-title">Secure Login</h2>
+                            <p class="panel-copy">JWT-backed login for agents and admins. Gmail addresses work as normal email logins.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <form id="login-form">
+                            <div class="two-col">
+                                <div class="field">
+                                    <label for="login-email">Email</label>
+                                    <input id="login-email" name="email" type="email" placeholder="you@example.com" required>
+                                </div>
+                                <div class="field">
+                                    <label for="login-password">Password</label>
+                                    <input id="login-password" name="password" type="password" placeholder="Your password" required>
+                                </div>
+                            </div>
+                            <div class="toolbar">
+                                <button class="primary" type="submit">Login To Workspace</button>
+                            </div>
+                        </form>
+                        <form id="forgot-form" style="margin-top:18px;">
+                            <div class="field">
+                                <label for="forgot-email">Forgot Password Email</label>
+                                <input id="forgot-email" name="email" type="email" placeholder="your-gmail-or-work-email@example.com" required>
+                            </div>
+                            <div class="toolbar">
+                                <button class="secondary" type="submit">Send Reset Link</button>
+                            </div>
+                        </form>
+                    </div>
+                </article>
+
+                <article id="reset-panel" class="panel hidden">
+                    <div class="panel-head">
+                        <div>
+                            <h2 class="panel-title">Reset Password</h2>
+                            <p class="panel-copy">Use the link from your email, then set a new password here.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <form id="reset-password-form">
+                            <div class="two-col">
+                                <div class="field">
+                                    <label for="reset-password">New Password</label>
+                                    <input id="reset-password" name="new_password" type="password" required>
+                                </div>
+                                <div class="field">
+                                    <label for="reset-password-confirm">Confirm New Password</label>
+                                    <input id="reset-password-confirm" name="new_password_confirm" type="password" required>
+                                </div>
+                            </div>
+                            <div class="toolbar">
+                                <button class="primary" type="submit">Reset Password</button>
+                            </div>
+                        </form>
+                    </div>
+                </article>
+
+                <article id="overview-panel" class="panel hidden">
+                    <div class="panel-head">
+                        <div>
+                            <h2 class="panel-title">Workspace Overview</h2>
+                            <p class="panel-copy">Your current usage, output volume, and platform footprint.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div id="overview-stats" class="stats"></div>
+                    </div>
+                </article>
+
+                <article id="upload-panel" class="panel hidden">
+                    <div class="panel-head">
+                        <div>
+                            <h2 class="panel-title">Upload Queue</h2>
+                            <p class="panel-copy">PDF, CSV, Excel, and image files are supported.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <form id="upload-form">
+                            <div class="field">
+                                <label for="upload-file">Choose File</label>
+                                <input id="upload-file" name="file" type="file" accept=".pdf,.csv,.xls,.xlsx,.png,.jpg,.jpeg,.bmp,.tiff,.webp" required>
+                            </div>
+                            <div class="toolbar">
+                                <button class="primary" type="submit">Upload File</button>
+                            </div>
+                        </form>
+                    </div>
+                </article>
+
+                <article id="uploads-panel" class="panel hidden">
+                    <div class="panel-head">
+                        <div>
+                            <h2 class="panel-title">Uploads</h2>
+                            <p class="panel-copy">Process files on demand and inspect status history.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div style="overflow-x:auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>File</th>
+                                        <th>Status</th>
+                                        <th>Uploaded</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="uploads-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </article>
+
+                <article id="results-panel" class="panel hidden">
+                    <div class="panel-head">
+                        <div>
+                            <h2 class="panel-title">Results</h2>
+                            <p class="panel-copy">Each processed file produces a downloadable Excel file.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div style="overflow-x:auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Upload</th>
+                                        <th>Total Numbers</th>
+                                        <th>Created</th>
+                                        <th>Download</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="results-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </article>
+            </div>
+
+            <div class="stack">
+                <article id="subscription-panel" class="panel hidden">
+                    <div class="panel-head">
+                        <div>
+                            <h2 class="panel-title">Subscription</h2>
+                            <p class="panel-copy">Plan name and daily enforcement limits.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div id="subscription-details" class="stats"></div>
+                    </div>
+                </article>
+
+                <article id="change-password-panel" class="panel hidden">
+                    <div class="panel-head">
+                        <div>
+                            <h2 class="panel-title">Change Password</h2>
+                            <p class="panel-copy">Authenticated users can rotate passwords without leaving the workspace.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <form id="change-password-form">
+                            <div class="field">
+                                <label for="current-password">Current Password</label>
+                                <input id="current-password" name="current_password" type="password" required>
+                            </div>
+                            <div class="two-col">
+                                <div class="field">
+                                    <label for="new-password">New Password</label>
+                                    <input id="new-password" name="new_password" type="password" required>
+                                </div>
+                                <div class="field">
+                                    <label for="new-password-confirm">Confirm New Password</label>
+                                    <input id="new-password-confirm" name="new_password_confirm" type="password" required>
+                                </div>
+                            </div>
+                            <div class="toolbar">
+                                <button class="secondary" type="submit">Update Password</button>
+                            </div>
+                        </form>
+                    </div>
+                </article>
+
+                <article id="activity-panel" class="panel hidden">
+                    <div class="panel-head">
+                        <div>
+                            <h2 class="panel-title">Activity Feed</h2>
+                            <p class="panel-copy">Recent authenticated actions captured by the platform.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div id="activity-list" class="activity-list"></div>
+                    </div>
+                </article>
+
+                <article id="admin-panel" class="panel hidden">
+                    <div class="panel-head">
+                        <div>
+                            <h2 class="panel-title">Admin Control</h2>
+                            <p class="panel-copy">Provision agent accounts and inspect platform-wide usage.</p>
+                        </div>
+                    </div>
+                    <div class="panel-body admin-grid">
+                        <div>
+                            <h3>Create Agent Account</h3>
+                            <form id="agent-form">
+                                <div class="field">
+                                    <label for="agent-name">Full Name</label>
+                                    <input id="agent-name" name="full_name" type="text" required>
+                                </div>
+                                <div class="field">
+                                    <label for="agent-email">Email</label>
+                                    <input id="agent-email" name="email" type="email" required>
+                                </div>
+                                <div class="two-col">
+                                    <div class="field">
+                                        <label for="agent-password">Password</label>
+                                        <input id="agent-password" name="password" type="password" required>
+                                    </div>
+                                    <div class="field">
+                                        <label for="agent-plan">Plan</label>
+                                        <select id="agent-plan" name="plan_code">
+                                            <option value="free">Free</option>
+                                            <option value="pro">Pro</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="role" value="agent">
+                                <div class="toolbar">
+                                    <button class="primary" type="submit">Create Agent</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div>
+                            <h3>Platform Stats</h3>
+                            <div id="admin-stats" class="stats"></div>
+                        </div>
+
+                        <div>
+                            <h3>Users</h3>
+                            <div style="overflow-x:auto;">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Role</th>
+                                            <th>Plan</th>
+                                            <th>Uploads</th>
+                                            <th>Results</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="users-table"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const searchParams = new URLSearchParams(window.location.search);
+        const state = {
+            access: localStorage.getItem("number_extractor_access") || "",
+            refresh: localStorage.getItem("number_extractor_refresh") || "",
+            user: JSON.parse(localStorage.getItem("number_extractor_user") || "null"),
+            resetUid: searchParams.get("reset_uid") || "",
+            resetToken: searchParams.get("reset_token") || "",
+        };
+
+        const els = {
+            message: document.getElementById("app-message"),
+            loginPanel: document.getElementById("login-panel"),
+            overviewPanel: document.getElementById("overview-panel"),
+            uploadPanel: document.getElementById("upload-panel"),
+            uploadsPanel: document.getElementById("uploads-panel"),
+            resultsPanel: document.getElementById("results-panel"),
+            subscriptionPanel: document.getElementById("subscription-panel"),
+            resetPanel: document.getElementById("reset-panel"),
+            changePasswordPanel: document.getElementById("change-password-panel"),
+            activityPanel: document.getElementById("activity-panel"),
+            adminPanel: document.getElementById("admin-panel"),
+            sessionDot: document.getElementById("session-dot"),
+            sessionLabel: document.getElementById("session-label"),
+            rolePill: document.getElementById("role-pill"),
+            whoami: document.getElementById("whoami"),
+            refreshButton: document.getElementById("refresh-button"),
+            logoutButton: document.getElementById("logout-button"),
+            overviewStats: document.getElementById("overview-stats"),
+            subscriptionDetails: document.getElementById("subscription-details"),
+            uploadsTable: document.getElementById("uploads-table"),
+            resultsTable: document.getElementById("results-table"),
+            activityList: document.getElementById("activity-list"),
+            adminStats: document.getElementById("admin-stats"),
+            usersTable: document.getElementById("users-table"),
+        };
+
+        const loginForm = document.getElementById("login-form");
+        const forgotForm = document.getElementById("forgot-form");
+        const uploadForm = document.getElementById("upload-form");
+        const agentForm = document.getElementById("agent-form");
+        const changePasswordForm = document.getElementById("change-password-form");
+        const resetPasswordForm = document.getElementById("reset-password-form");
+
+        function setMessage(text, type = "", html = "") {
+            els.message.className = "message";
+            if (type) {
+                els.message.classList.add(type);
+            }
+            if (html) {
+                els.message.innerHTML = html;
+                return;
+            }
+            els.message.textContent = text;
+        }
+
+        function saveSession() {
+            localStorage.setItem("number_extractor_access", state.access);
+            localStorage.setItem("number_extractor_refresh", state.refresh);
+            localStorage.setItem("number_extractor_user", JSON.stringify(state.user));
+        }
+
+        function clearSession() {
+            state.access = "";
+            state.refresh = "";
+            state.user = null;
+            localStorage.removeItem("number_extractor_access");
+            localStorage.removeItem("number_extractor_refresh");
+            localStorage.removeItem("number_extractor_user");
+            renderShell();
+        }
+
+        async function api(url, options = {}) {
+            const headers = new Headers(options.headers || {});
+            if (!(options.body instanceof FormData) && !headers.has("Content-Type")) {
+                headers.set("Content-Type", "application/json");
+            }
+            if (state.access) {
+                headers.set("Authorization", `Bearer ${state.access}`);
+            }
+
+            const response = await fetch(url, { ...options, headers });
+            if (response.status === 401) {
+                clearSession();
+                throw new Error("Your session expired. Log in again.");
+            }
+
+            const contentType = response.headers.get("content-type") || "";
+            const payload = contentType.includes("application/json") ? await response.json() : await response.text();
+
+            if (!response.ok) {
+                let message = "Request failed.";
+                if (typeof payload === "string" && payload) {
+                    message = payload;
+                } else if (payload && typeof payload === "object") {
+                    message = Object.entries(payload)
+                        .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
+                        .join(" | ");
+                }
+                throw new Error(message);
+            }
+
+            return payload;
+        }
+
+        function formatDate(value) {
+            if (!value) {
+                return "N/A";
+            }
+            return new Date(value).toLocaleString();
+        }
+
+        function statusClass(status) {
+            return ["completed", "processing", "failed"].includes(status) ? status : "";
+        }
+
+        function renderShell() {
+            const isAuthed = Boolean(state.access && state.user);
+            const isAdmin = isAuthed && state.user.role === "admin";
+            const resetMode = Boolean(state.resetUid && state.resetToken);
+
+            els.loginPanel.classList.toggle("hidden", isAuthed || resetMode);
+            els.overviewPanel.classList.toggle("hidden", !isAuthed);
+            els.uploadPanel.classList.toggle("hidden", !isAuthed);
+            els.uploadsPanel.classList.toggle("hidden", !isAuthed);
+            els.resultsPanel.classList.toggle("hidden", !isAuthed);
+            els.subscriptionPanel.classList.toggle("hidden", !isAuthed);
+            els.resetPanel.classList.toggle("hidden", !resetMode);
+            els.changePasswordPanel.classList.toggle("hidden", !isAuthed);
+            els.activityPanel.classList.toggle("hidden", !isAuthed);
+            els.adminPanel.classList.toggle("hidden", !isAdmin);
+            els.refreshButton.classList.toggle("hidden", !isAuthed);
+            els.logoutButton.classList.toggle("hidden", !isAuthed);
+            els.rolePill.classList.toggle("hidden", !isAuthed);
+            els.sessionDot.classList.toggle("live", isAuthed);
+            els.sessionLabel.textContent = isAuthed ? "Signed in" : "Signed out";
+            els.whoami.textContent = isAuthed
+                ? `${state.user.full_name} · ${state.user.email}`
+                : "Use your admin or agent account to access the product.";
+
+            if (isAuthed) {
+                els.rolePill.textContent = isAdmin ? "Admin Workspace" : "Agent Workspace";
+            } else {
+                els.rolePill.textContent = "";
+            }
+        }
+
+        function renderStats(target, items) {
+            target.innerHTML = items
+                .map((item) => `
+                    <div class="stat">
+                        <div class="stat-label">${item.label}</div>
+                        <div class="stat-value">${item.value}</div>
+                    </div>
+                `)
+                .join("");
+        }
+
+        function renderUploads(uploads) {
+            if (!uploads.length) {
+                els.uploadsTable.innerHTML = '<tr><td colspan="4" class="muted">No uploads yet.</td></tr>';
+                return;
+            }
+
+            els.uploadsTable.innerHTML = uploads.map((upload) => `
+                <tr>
+                    <td data-label="File">
+                        <strong>${upload.original_name}</strong><br>
+                        <span class="muted">${upload.file_type.toUpperCase()} · ${(upload.file_size / 1024).toFixed(1)} KB</span>
+                    </td>
+                    <td data-label="Status">
+                        <span class="status-pill ${statusClass(upload.status)}">${upload.status}</span>
+                        ${upload.error_message ? `<div class="muted">${upload.error_message}</div>` : ""}
+                    </td>
+                    <td data-label="Uploaded">${formatDate(upload.upload_time)}</td>
+                    <td data-label="Action">
+                        <div class="mini-actions">
+                            <button class="secondary" type="button" onclick="processUpload('${upload.id}')">Process</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        function renderResults(results) {
+            if (!results.length) {
+                els.resultsTable.innerHTML = '<tr><td colspan="4" class="muted">No processed results yet.</td></tr>';
+                return;
+            }
+
+            els.resultsTable.innerHTML = results.map((result) => `
+                <tr>
+                    <td data-label="Upload">
+                        <strong>${result.upload_name}</strong><br>
+                        <span class="muted">${result.numbers.slice(0, 3).join(", ") || "No numbers found"}</span>
+                    </td>
+                    <td data-label="Total Numbers">${result.total_numbers}</td>
+                    <td data-label="Created">${formatDate(result.created_at)}</td>
+                    <td data-label="Download">
+                        <div class="mini-actions">
+                            <button class="secondary" type="button" onclick="downloadResult('${result.id}')">Download Excel</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        function renderActivity(items) {
+            if (!items.length) {
+                els.activityList.innerHTML = '<div class="activity-item muted">No activity recorded yet.</div>';
+                return;
+            }
+
+            els.activityList.innerHTML = items.map((item) => `
+                <div class="activity-item">
+                    <strong>${item.action.replaceAll("_", " ")}</strong>
+                    <div>${item.description || "No description recorded."}</div>
+                    <div class="muted">${formatDate(item.created_at)}${item.user_email ? ` · ${item.user_email}` : ""}</div>
+                </div>
+            `).join("");
+        }
+
+        function renderUsers(users) {
+            if (!users.length) {
+                els.usersTable.innerHTML = '<tr><td colspan="5" class="muted">No users found.</td></tr>';
+                return;
+            }
+
+            els.usersTable.innerHTML = users.map((user) => `
+                <tr>
+                    <td data-label="User">
+                        <strong>${user.full_name}</strong><br>
+                        <span class="muted">${user.email}</span>
+                    </td>
+                    <td data-label="Role">${user.role}</td>
+                    <td data-label="Plan">${user.subscription_plan || "free"}</td>
+                    <td data-label="Uploads">${user.upload_count}</td>
+                    <td data-label="Results">${user.result_count}</td>
+                </tr>
+            `).join("");
+        }
+
+        async function loadWorkspace() {
+            if (!state.access) {
+                renderShell();
+                return;
+            }
+
+            try {
+                const me = await api("/api/me", { method: "GET" });
+                state.user = me;
+                saveSession();
+                renderShell();
+
+                const dashboard = await api("/api/dashboard/me", { method: "GET" });
+                const uploads = await api("/api/uploads", { method: "GET" });
+                const results = await api("/api/results", { method: "GET" });
+                const activity = state.user.role === "admin"
+                    ? await api("/api/admin/activity", { method: "GET" })
+                    : await api("/api/dashboard/activity", { method: "GET" });
+
+                renderStats(els.overviewStats, [
+                    { label: "Uploads", value: dashboard.stats.uploads },
+                    { label: "Results", value: dashboard.stats.results },
+                    { label: "Numbers Extracted", value: dashboard.stats.numbers_extracted },
+                ]);
+
+                renderStats(els.subscriptionDetails, [
+                    { label: "Plan", value: dashboard.subscription.plan.name },
+                    {
+                        label: "Daily File Limit",
+                        value: dashboard.subscription.plan.is_unlimited
+                            ? "Unlimited"
+                            : dashboard.subscription.plan.daily_file_limit ?? "N/A",
+                    },
+                    {
+                        label: "Daily Number Limit",
+                        value: dashboard.subscription.plan.is_unlimited
+                            ? "Unlimited"
+                            : dashboard.subscription.plan.daily_number_limit ?? "N/A",
+                    },
+                ]);
+
+                const uploadItems = Array.isArray(uploads.results) ? uploads.results : uploads;
+                const resultItems = Array.isArray(results.results) ? results.results : results;
+
+                renderUploads(uploadItems);
+                renderResults(resultItems);
+                renderActivity(activity);
+
+                if (state.user.role === "admin") {
+                    const adminStats = await api("/api/admin/stats", { method: "GET" });
+                    const users = await api("/api/admin/users", { method: "GET" });
+                    renderStats(els.adminStats, [
+                        { label: "Users", value: adminStats.total_users },
+                        { label: "Uploads", value: adminStats.total_uploads },
+                        { label: "Numbers", value: adminStats.total_numbers_extracted },
+                        { label: "Failures", value: adminStats.failed_uploads },
+                    ]);
+                    renderUsers(users);
+                }
+
+                setMessage(`Workspace ready for ${state.user.full_name}.`, "success");
+            } catch (error) {
+                setMessage(error.message, "error");
+            }
+        }
+
+        loginForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const formData = new FormData(loginForm);
+            try {
+                const payload = await api("/api/login", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        email: formData.get("email"),
+                        password: formData.get("password"),
+                    }),
+                });
+                state.access = payload.access;
+                state.refresh = payload.refresh;
+                state.user = payload.user;
+                saveSession();
+                await loadWorkspace();
+            } catch (error) {
+                setMessage(error.message, "error");
+            }
+        });
+
+        forgotForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const formData = new FormData(forgotForm);
+            try {
+                const payload = await api("/api/forgot-password", {
+                    method: "POST",
+                    body: JSON.stringify({ email: formData.get("email") }),
+                });
+                forgotForm.reset();
+                if (payload.reset_url) {
+                    setMessage(
+                        "",
+                        "success",
+                        `${payload.detail}<br><br><a href="${payload.reset_url}">${payload.reset_url}</a>`
+                    );
+                } else {
+                    setMessage(payload.detail, "success");
+                }
+            } catch (error) {
+                setMessage(error.message, "error");
+            }
+        });
+
+        uploadForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const formData = new FormData(uploadForm);
+            try {
+                await api("/api/upload", { method: "POST", body: formData });
+                uploadForm.reset();
+                setMessage("File uploaded successfully. Run processing from the uploads table.", "success");
+                await loadWorkspace();
+            } catch (error) {
+                setMessage(error.message, "error");
+            }
+        });
+
+        agentForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const formData = new FormData(agentForm);
+            const password = formData.get("password");
+            try {
+                await api("/api/register", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        email: formData.get("email"),
+                        full_name: formData.get("full_name"),
+                        role: "agent",
+                        password,
+                        password_confirm: password,
+                        plan_code: formData.get("plan_code"),
+                    }),
+                });
+                agentForm.reset();
+                setMessage("Agent account created.", "success");
+                await loadWorkspace();
+            } catch (error) {
+                setMessage(error.message, "error");
+            }
+        });
+
+        changePasswordForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const formData = new FormData(changePasswordForm);
+            try {
+                const payload = await api("/api/change-password", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        current_password: formData.get("current_password"),
+                        new_password: formData.get("new_password"),
+                        new_password_confirm: formData.get("new_password_confirm"),
+                    }),
+                });
+                changePasswordForm.reset();
+                clearSession();
+                setMessage(`${payload.detail} Log in again with the new password.`, "success");
+            } catch (error) {
+                setMessage(error.message, "error");
+            }
+        });
+
+        resetPasswordForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const formData = new FormData(resetPasswordForm);
+            try {
+                const payload = await api("/api/reset-password", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        uid: state.resetUid,
+                        token: state.resetToken,
+                        new_password: formData.get("new_password"),
+                        new_password_confirm: formData.get("new_password_confirm"),
+                    }),
+                });
+                state.resetUid = "";
+                state.resetToken = "";
+                window.history.replaceState({}, "", "/app/");
+                resetPasswordForm.reset();
+                renderShell();
+                setMessage(`${payload.detail} You can now log in.`, "success");
+            } catch (error) {
+                setMessage(error.message, "error");
+            }
+        });
+
+        document.getElementById("refresh-button").addEventListener("click", loadWorkspace);
+
+        document.getElementById("logout-button").addEventListener("click", async () => {
+            try {
+                if (state.refresh) {
+                    await api("/api/logout", {
+                        method: "POST",
+                        body: JSON.stringify({ refresh: state.refresh }),
+                    });
+                }
+            } catch (error) {
+                setMessage(error.message, "error");
+            } finally {
+                clearSession();
+                setMessage("Logged out.");
+            }
+        });
+
+        window.processUpload = async function processUpload(uploadId) {
+            try {
+                await api(`/api/process/${uploadId}`, { method: "POST" });
+                setMessage("Extraction complete.", "success");
+                await loadWorkspace();
+            } catch (error) {
+                setMessage(error.message, "error");
+            }
+        };
+
+        window.downloadResult = async function downloadResult(resultId) {
+            try {
+                const response = await fetch(`/api/download/${resultId}`, {
+                    headers: { Authorization: `Bearer ${state.access}` },
+                });
+                if (!response.ok) {
+                    throw new Error("Download failed.");
+                }
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement("a");
+                anchor.href = url;
+                anchor.download = `result-${resultId}.xlsx`;
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+                URL.revokeObjectURL(url);
+                setMessage("Download started.", "success");
+            } catch (error) {
+                setMessage(error.message, "error");
+            }
+        };
+
+        renderShell();
+        loadWorkspace();
+    </script>
+</body>
+</html>

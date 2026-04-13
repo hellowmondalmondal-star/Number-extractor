@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Number Extractor</title>
+    <style>
+        :root {
+            --bg: #f5efe6;
+            --panel: #fffdf8;
+            --ink: #1e1d1a;
+            --accent: #b65f3a;
+            --accent-soft: #e9d5c4;
+            --line: #d8c7b7;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Avenir Next", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(182, 95, 58, 0.15), transparent 28%),
+                linear-gradient(180deg, #f8f1e9 0%, var(--bg) 100%);
+        }
+
+        .wrap {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 48px 24px 72px;
+        }
+
+        .hero {
+            display: grid;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .eyebrow {
+            width: fit-content;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            font-size: 12px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2.5rem, 8vw, 4.8rem);
+            line-height: 0.95;
+            max-width: 12ch;
+        }
+
+        p {
+            max-width: 58ch;
+            margin: 0;
+            font-size: 1.05rem;
+            line-height: 1.6;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .card {
+            padding: 20px;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: var(--panel);
+            box-shadow: 0 12px 40px rgba(30, 29, 26, 0.06);
+        }
+
+        .label {
+            font-size: 0.85rem;
+            opacity: 0.72;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .value {
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+
+        .footer {
+            margin-top: 28px;
+            padding-top: 18px;
+            border-top: 1px solid var(--line);
+            font-size: 0.95rem;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 18px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            color: var(--ink);
+            text-decoration: none;
+            font-weight: 600;
+            background: rgba(255, 253, 248, 0.8);
+        }
+
+        .button.primary {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <section class="hero">
+            <div class="eyebrow">Production SaaS Ready</div>
+            <h1>Phone Number Extraction Platform</h1>
+            <p>
+                Django, DRF, JWT auth, subscription limits, uploads, OCR-powered extraction,
+                Excel exports, and admin activity tracking are wired and ready for deployment.
+            </p>
+            <div class="actions">
+                <a class="button primary" href="/app/">Open Product Workspace</a>
+                <a class="button" href="/admin/">Open Django Admin</a>
+            </div>
+        </section>
+
+        <section class="grid">
+            <article class="card">
+                <div class="label">Total Users</div>
+                <div class="value">{{ total_users }}</div>
+            </article>
+            <article class="card">
+                <div class="label">Total Uploads</div>
+                <div class="value">{{ total_uploads }}</div>
+            </article>
+            <article class="card">
+                <div class="label">Completed Uploads</div>
+                <div class="value">{{ completed_uploads }}</div>
+            </article>
+            <article class="card">
+                <div class="label">Numbers Extracted</div>
+                <div class="value">{{ total_numbers_extracted }}</div>
+            </article>
+        </section>
+
+        <section class="footer">
+            Admin API lives under <strong>/api/admin/*</strong>. Core workflow: register or create an admin,
+            log in for JWT tokens, upload a file, process it, then download the generated Excel result.
+            The browser workspace is available at <strong>/app/</strong>.
+        </section>
+    </main>
+</body>
+</html>
