@@ -4,6 +4,7 @@ from apps.dashboard.services import log_activity
 from apps.uploads.models import UploadedFile
 from apps.uploads.permissions import IsOwnerOrAdmin
 from apps.uploads.serializers import UploadCreateSerializer, UploadSerializer
+from apps.uploads.services import mark_stale_processing_uploads
 
 
 class UploadViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -13,8 +14,11 @@ class UploadViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.Retri
     def get_queryset(self):
         queryset = self.queryset.select_related("extraction_result")
         if self.request.user.is_admin:
+            mark_stale_processing_uploads(queryset)
             return queryset
-        return queryset.filter(user=self.request.user)
+        queryset = queryset.filter(user=self.request.user)
+        mark_stale_processing_uploads(queryset)
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "create":
