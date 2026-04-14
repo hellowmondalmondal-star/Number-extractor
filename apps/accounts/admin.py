@@ -51,6 +51,12 @@ class UserAdmin(BaseUserAdmin):
             },
         ),
     )
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if hasattr(form, "save_subscription"):
+            form.save_subscription(obj)
+
     def subscription_plan(self, obj):
         try:
             return obj.subscription.plan.name
