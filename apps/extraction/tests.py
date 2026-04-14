@@ -1,9 +1,14 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
 from apps.extraction.services import extract_numbers, normalize_phone_number
+from apps.uploads.models import UploadedFile
 
 User = get_user_model()
 
@@ -28,3 +33,27 @@ class ExtractionApiTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("results", response.data)
+
+    @override_settings(FREE_PLAN_DAILY_NUMBER_LIMIT=1)
+    def test_process_limit_returns_400_instead_of_server_error(self):
+        user = User.objects.create_user(email="process@example.com", full_name="Process User", password="password123")
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        csv_bytes = b"phone\n9876543210\n9876543211\n"
+        uploaded_file = UploadedFile.objects.create(
+            user=user,
+            file=SimpleUploadedFile("contacts.csv", csv_bytes, content_type="text/csv"),
+            original_name="contacts.csv",
+            file_size=len(csv_bytes),
+            file_type=UploadedFile.FileTypeChoices.CSV,
+        )
+
+        with patch(
+            "apps.extraction.views.process_uploaded_file",
+            side_effect=DjangoValidationError("Daily extracted number limit reached for the current subscription."),
+        ):
+            response = client.post(reverse("process-upload", args=[uploaded_file.id]))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Daily extracted number limit reached", str(response.data))

@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.subscriptions.services import enforce_daily_file_limit
@@ -17,7 +18,10 @@ class UploadCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = self.context["request"].user
         file_obj = validated_data["file"]
-        enforce_daily_file_limit(user)
+        try:
+            enforce_daily_file_limit(user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.messages) from exc
         return UploadedFile.objects.create(
             user=user,
             file=file_obj,

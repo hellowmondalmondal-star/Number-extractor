@@ -1,9 +1,10 @@
 from pathlib import Path
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, permissions, viewsets
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from apps.dashboard.services import log_activity
@@ -33,7 +34,10 @@ class ExtractionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
         if not (request.user.is_admin or uploaded_file.user_id == request.user.id):
             raise PermissionDenied("You can only process your own uploads.")
 
-        result = process_uploaded_file(uploaded_file)
+        try:
+            result = process_uploaded_file(uploaded_file)
+        except DjangoValidationError as exc:
+            raise ValidationError(exc.messages) from exc
         serializer = self.get_serializer(result)
         return Response(serializer.data)
 

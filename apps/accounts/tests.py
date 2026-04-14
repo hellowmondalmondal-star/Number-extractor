@@ -104,6 +104,81 @@ class AdminUserCreationFormTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "subscription_status")
 
+    def test_admin_add_page_persists_selected_subscription_plan(self):
+        admin_user = User.objects.create_user(
+            email="super@example.com",
+            full_name="Super User",
+            password="OrbitPass5481",
+            role=User.RoleChoices.ADMIN,
+            is_staff=True,
+            is_superuser=True,
+        )
+        pro_plan = get_plan_by_code("pro")
+        self.client.force_login(admin_user)
+
+        response = self.client.post(
+            reverse("admin:accounts_user_add"),
+            {
+                "email": "agent-pro@example.com",
+                "full_name": "Agent Pro",
+                "role": User.RoleChoices.AGENT,
+                "plan": str(pro_plan.pk),
+                "subscription_status": "active",
+                "subscription_expires_at_0": "",
+                "subscription_expires_at_1": "",
+                "subscription_auto_renew": "on",
+                "password1": "OrbitPass5481",
+                "password2": "OrbitPass5481",
+                "is_active": "on",
+                "_save": "Save",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        created_user = User.objects.get(email="agent-pro@example.com")
+        self.assertEqual(created_user.subscription.plan.code, "pro")
+
+    def test_admin_change_page_updates_selected_subscription_plan(self):
+        admin_user = User.objects.create_user(
+            email="super@example.com",
+            full_name="Super User",
+            password="OrbitPass5481",
+            role=User.RoleChoices.ADMIN,
+            is_staff=True,
+            is_superuser=True,
+        )
+        agent_user = User.objects.create_user(
+            email="agent@example.com",
+            full_name="Agent User",
+            password="OrbitPass5481",
+            role=User.RoleChoices.AGENT,
+        )
+        pro_plan = get_plan_by_code("pro")
+        self.client.force_login(admin_user)
+
+        response = self.client.post(
+            reverse("admin:accounts_user_change", args=[agent_user.pk]),
+            {
+                "password": agent_user.password,
+                "email": agent_user.email,
+                "full_name": agent_user.full_name,
+                "role": agent_user.role,
+                "plan": str(pro_plan.pk),
+                "subscription_status": "active",
+                "subscription_expires_at_0": "",
+                "subscription_expires_at_1": "",
+                "subscription_auto_renew": "on",
+                "is_active": "on",
+                "_save": "Save",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        agent_user.refresh_from_db()
+        self.assertEqual(agent_user.subscription.plan.code, "pro")
+
 
 class RegisterEndpointTests(TestCase):
     def setUp(self):
