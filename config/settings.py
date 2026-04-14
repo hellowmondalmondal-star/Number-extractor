@@ -96,6 +96,22 @@ def build_csrf_trusted_origins(*, configured_origins, site_url, debug, render_ex
     return unique_values(normalize_origins(configured_origins) + resolved_origins)
 
 
+def build_database_config(*, database_url, base_dir, django_env):
+    resolved_database_url = database_url.strip()
+    if django_env == "production" and not resolved_database_url:
+        raise ImproperlyConfigured("Set DATABASE_URL before running in production.")
+
+    database_config = dj_database_url.parse(
+        resolved_database_url or f"sqlite:///{base_dir / 'db.sqlite3'}",
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+    if django_env == "production" and database_config["ENGINE"] == "django.db.backends.sqlite3":
+        raise ImproperlyConfigured("Production must use PostgreSQL via DATABASE_URL.")
+
+    return {"default": database_config}
+
+
 DJANGO_ENV = os.getenv("DJANGO_ENV", "development").strip().lower()
 DEFAULT_SECRET_KEY = "django-insecure-change-me"
 DEFAULT_SITE_URL = "http://127.0.0.1:8000"
@@ -178,13 +194,8 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 
-DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
-}
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+DATABASES = build_database_config(database_url=DATABASE_URL, base_dir=BASE_DIR, django_env=DJANGO_ENV)
 
 
 AUTH_PASSWORD_VALIDATORS = [
