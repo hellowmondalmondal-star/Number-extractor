@@ -11,16 +11,7 @@ class SubscriptionFieldsMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         ensure_default_plans()
-        self.fields["plan"] = forms.ModelChoiceField(queryset=SubscriptionPlan.objects.order_by("name"), required=True)
-        self.fields["subscription_status"] = forms.ChoiceField(
-            choices=UserSubscription.StatusChoices.choices,
-            initial=UserSubscription.StatusChoices.ACTIVE,
-        )
-        self.fields["subscription_expires_at"] = forms.SplitDateTimeField(
-            required=False,
-            widget=AdminSplitDateTime,
-        )
-        self.fields["subscription_auto_renew"] = forms.BooleanField(required=False, initial=True)
+        self.fields["plan"].queryset = SubscriptionPlan.objects.order_by("name")
 
         self.fields["plan"].initial = get_plan_by_code("free")
 
@@ -49,6 +40,17 @@ class SubscriptionFieldsMixin:
 
 
 class AdminUserCreationForm(SubscriptionFieldsMixin, UserCreationForm):
+    plan = forms.ModelChoiceField(queryset=SubscriptionPlan.objects.none(), required=True)
+    subscription_status = forms.ChoiceField(
+        choices=UserSubscription.StatusChoices.choices,
+        initial=UserSubscription.StatusChoices.ACTIVE,
+    )
+    subscription_expires_at = forms.SplitDateTimeField(
+        required=False,
+        widget=AdminSplitDateTime,
+    )
+    subscription_auto_renew = forms.BooleanField(required=False, initial=True)
+
     class Meta(UserCreationForm.Meta):
         model = User
         fields = ("email", "full_name", "role", "is_active", "is_staff", "is_superuser")
@@ -57,6 +59,10 @@ class AdminUserCreationForm(SubscriptionFieldsMixin, UserCreationForm):
         user = super().save(commit=False)
         if user.role == User.RoleChoices.ADMIN:
             user.is_staff = True
+            user.is_superuser = True
+        else:
+            user.is_staff = False
+            user.is_superuser = False
         if commit:
             user.save()
             self.save_m2m()
@@ -65,6 +71,17 @@ class AdminUserCreationForm(SubscriptionFieldsMixin, UserCreationForm):
 
 
 class AdminUserChangeForm(SubscriptionFieldsMixin, UserChangeForm):
+    plan = forms.ModelChoiceField(queryset=SubscriptionPlan.objects.none(), required=True)
+    subscription_status = forms.ChoiceField(
+        choices=UserSubscription.StatusChoices.choices,
+        initial=UserSubscription.StatusChoices.ACTIVE,
+    )
+    subscription_expires_at = forms.SplitDateTimeField(
+        required=False,
+        widget=AdminSplitDateTime,
+    )
+    subscription_auto_renew = forms.BooleanField(required=False, initial=True)
+
     class Meta(UserChangeForm.Meta):
         model = User
         fields = "__all__"
@@ -73,6 +90,10 @@ class AdminUserChangeForm(SubscriptionFieldsMixin, UserChangeForm):
         user = super().save(commit=False)
         if user.role == User.RoleChoices.ADMIN:
             user.is_staff = True
+            user.is_superuser = True
+        else:
+            user.is_staff = False
+            user.is_superuser = False
         if commit:
             user.save()
             self.save_m2m()

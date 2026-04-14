@@ -5,29 +5,31 @@ from django.utils import timezone
 
 from apps.subscriptions.models import SubscriptionPlan, UserSubscription
 
-DEFAULT_PLAN_DEFINITIONS = {
-    "free": {
-        "name": "Free",
-        "daily_file_limit": settings.FREE_PLAN_DAILY_FILE_LIMIT,
-        "daily_number_limit": settings.FREE_PLAN_DAILY_NUMBER_LIMIT,
-        "is_unlimited": False,
-        "price": 0,
-    },
-    "pro": {
-        "name": "Pro",
-        "daily_file_limit": None if settings.PRO_PLAN_DAILY_FILE_LIMIT == 0 else settings.PRO_PLAN_DAILY_FILE_LIMIT,
-        "daily_number_limit": None
-        if settings.PRO_PLAN_DAILY_NUMBER_LIMIT == 0
-        else settings.PRO_PLAN_DAILY_NUMBER_LIMIT,
-        "is_unlimited": settings.PRO_PLAN_DAILY_FILE_LIMIT == 0 and settings.PRO_PLAN_DAILY_NUMBER_LIMIT == 0,
-        "price": 49,
-    },
-}
+
+def get_default_plan_definitions():
+    return {
+        "free": {
+            "name": "Free",
+            "daily_file_limit": settings.FREE_PLAN_DAILY_FILE_LIMIT,
+            "daily_number_limit": settings.FREE_PLAN_DAILY_NUMBER_LIMIT,
+            "is_unlimited": False,
+            "price": 0,
+        },
+        "pro": {
+            "name": "Pro",
+            "daily_file_limit": None if settings.PRO_PLAN_DAILY_FILE_LIMIT == 0 else settings.PRO_PLAN_DAILY_FILE_LIMIT,
+            "daily_number_limit": None
+            if settings.PRO_PLAN_DAILY_NUMBER_LIMIT == 0
+            else settings.PRO_PLAN_DAILY_NUMBER_LIMIT,
+            "is_unlimited": settings.PRO_PLAN_DAILY_FILE_LIMIT == 0 and settings.PRO_PLAN_DAILY_NUMBER_LIMIT == 0,
+            "price": 49,
+        },
+    }
 
 
 def ensure_default_plans():
     plans = {}
-    for code, defaults in DEFAULT_PLAN_DEFINITIONS.items():
+    for code, defaults in get_default_plan_definitions().items():
         plan, _ = SubscriptionPlan.objects.update_or_create(code=code, defaults=defaults)
         plans[code] = plan
     return plans
@@ -76,6 +78,9 @@ def get_or_create_user_subscription(user):
 
 
 def enforce_daily_file_limit(user):
+    if getattr(user, "is_admin", False):
+        return None
+
     subscription = get_or_create_user_subscription(user)
     plan = subscription.plan
 
@@ -91,6 +96,9 @@ def enforce_daily_file_limit(user):
 
 
 def enforce_daily_number_limit(user, incoming_total, existing_total=0):
+    if getattr(user, "is_admin", False):
+        return None
+
     subscription = get_or_create_user_subscription(user)
     plan = subscription.plan
 

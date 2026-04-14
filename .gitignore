@@ -6,4 +6,9 @@ __pycache__/
 db.sqlite3
 media/
 staticfiles/
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.log
 .DS_Store

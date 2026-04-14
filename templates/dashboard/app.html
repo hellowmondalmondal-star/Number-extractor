@@ -440,7 +440,7 @@
                     </span>
                     <span id="role-pill" class="badge hidden"></span>
                 </div>
-                <span id="whoami" class="muted">Use your admin or agent account to access the product.</span>
+                <span id="whoami" class="muted">Use the credentials your admin created for you.</span>
             </div>
             <div class="actions">
                 <button id="refresh-button" class="secondary hidden" type="button">Refresh Data</button>
@@ -456,7 +456,7 @@
                     <div class="panel-head">
                         <div>
                             <h2 class="panel-title">Secure Login</h2>
-                            <p class="panel-copy">JWT-backed login for agents and admins. Gmail addresses work as normal email logins.</p>
+                            <p class="panel-copy">JWT-backed login for admins and subscription users.</p>
                         </div>
                     </div>
                     <div class="panel-body">
@@ -653,39 +653,18 @@
                     <div class="panel-head">
                         <div>
                             <h2 class="panel-title">Admin Control</h2>
-                            <p class="panel-copy">Provision agent accounts and inspect platform-wide usage.</p>
+                            <p class="panel-copy">User and subscription management stays in Django admin. This workspace keeps only the live platform overview.</p>
                         </div>
                     </div>
                     <div class="panel-body admin-grid">
                         <div>
-                            <h3>Create Agent Account</h3>
-                            <form id="agent-form">
-                                <div class="field">
-                                    <label for="agent-name">Full Name</label>
-                                    <input id="agent-name" name="full_name" type="text" required>
-                                </div>
-                                <div class="field">
-                                    <label for="agent-email">Email</label>
-                                    <input id="agent-email" name="email" type="email" required>
-                                </div>
-                                <div class="two-col">
-                                    <div class="field">
-                                        <label for="agent-password">Password</label>
-                                        <input id="agent-password" name="password" type="password" required>
-                                    </div>
-                                    <div class="field">
-                                        <label for="agent-plan">Plan</label>
-                                        <select id="agent-plan" name="plan_code">
-                                            <option value="free">Free</option>
-                                            <option value="pro">Pro</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <input type="hidden" name="role" value="agent">
-                                <div class="toolbar">
-                                    <button class="primary" type="submit">Create Agent</button>
-                                </div>
-                            </form>
+                            <h3>Backend Access</h3>
+                            <p class="panel-copy">
+                                Create users, assign plans, change roles, and control subscriptions from the Django admin backend.
+                            </p>
+                            <div class="toolbar">
+                                <a class="button-link primary" href="/admin/" target="_blank" rel="noopener noreferrer">Open Django Admin</a>
+                            </div>
                         </div>
 
                         <div>
@@ -756,7 +735,6 @@
         const loginForm = document.getElementById("login-form");
         const forgotForm = document.getElementById("forgot-form");
         const uploadForm = document.getElementById("upload-form");
-        const agentForm = document.getElementById("agent-form");
         const changePasswordForm = document.getElementById("change-password-form");
         const resetPasswordForm = document.getElementById("reset-password-form");
 
@@ -854,10 +832,10 @@
             els.sessionLabel.textContent = isAuthed ? "Signed in" : "Signed out";
             els.whoami.textContent = isAuthed
                 ? `${state.user.full_name} · ${state.user.email}`
-                : "Use your admin or agent account to access the product.";
+                : "Use the credentials your admin created for you.";
 
             if (isAuthed) {
-                els.rolePill.textContent = isAdmin ? "Admin Workspace" : "Agent Workspace";
+                els.rolePill.textContent = isAdmin ? "Admin Workspace" : "User Workspace";
             } else {
                 els.rolePill.textContent = "";
             }
@@ -1075,30 +1053,6 @@
                 await api("/api/upload", { method: "POST", body: formData });
                 uploadForm.reset();
                 setMessage("File uploaded successfully. Run processing from the uploads table.", "success");
-                await loadWorkspace();
-            } catch (error) {
-                setMessage(error.message, "error");
-            }
-        });
-
-        agentForm.addEventListener("submit", async (event) => {
-            event.preventDefault();
-            const formData = new FormData(agentForm);
-            const password = formData.get("password");
-            try {
-                await api("/api/register", {
-                    method: "POST",
-                    body: JSON.stringify({
-                        email: formData.get("email"),
-                        full_name: formData.get("full_name"),
-                        role: "agent",
-                        password,
-                        password_confirm: password,
-                        plan_code: formData.get("plan_code"),
-                    }),
-                });
-                agentForm.reset();
-                setMessage("Agent account created.", "success");
                 await loadWorkspace();
             } catch (error) {
                 setMessage(error.message, "error");

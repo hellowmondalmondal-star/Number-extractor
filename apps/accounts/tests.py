@@ -1,12 +1,18 @@
-from django.core import mail
+from io import StringIO
+
 from django.contrib.auth import get_user_model
+from django.contrib.admin.sites import site
+from django.contrib.admin.utils import flatten_fieldsets
+from django.core import mail
+from django.core.management import call_command
+from django.contrib.auth.tokens import default_token_generator
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework.test import APIClient
-from django.contrib.auth.tokens import default_token_generator
 
+from apps.accounts.admin import UserAdmin
 from apps.accounts.forms import AdminUserCreationForm
 from apps.accounts.serializers import RegisterSerializer
 from apps.subscriptions.services import get_plan_by_code
@@ -32,6 +38,24 @@ class RegisterSerializerTests(TestCase):
         self.assertEqual(user.email, "agent@example.com")
         self.assertEqual(user.subscription.plan.code, "free")
 
+    def test_creates_admin_with_backend_access_flags(self):
+        serializer = RegisterSerializer(
+            data={
+                "email": "admin@example.com",
+                "full_name": "Admin User",
+                "role": "admin",
+                "password": "OrbitPass5481",
+                "password_confirm": "OrbitPass5481",
+            }
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        user = serializer.save()
+
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+        self.assertEqual(user.role, "admin")
+
 
 class AdminUserCreationFormTests(TestCase):
     def test_admin_user_creation_form_sets_subscription(self):
@@ -55,6 +79,124 @@ class AdminUserCreationFormTests(TestCase):
 
         self.assertEqual(user.subscription.plan.code, "pro")
         self.assertEqual(user.subscription.status, "active")
+
+    def test_admin_user_admin_add_form_exposes_subscription_fields(self):
+        field_names = flatten_fieldsets(UserAdmin(User, site).add_fieldsets)
+
+        self.assertIn("plan", field_names)
+        self.assertIn("subscription_status", field_names)
+        self.assertIn("subscription_expires_at", field_names)
+        self.assertIn("subscription_auto_renew", field_names)
+
+    def test_admin_add_page_renders(self):
+        admin_user = User.objects.create_user(
+            email="super@example.com",
+            full_name="Super User",
+            password="OrbitPass5481",
+            role=User.RoleChoices.ADMIN,
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.client.force_login(admin_user)
+
+        response = self.client.get(reverse("admin:accounts_user_add"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "subscription_status")
+
+
+class RegisterEndpointTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create_user(
+            email="owner@example.com",
+            full_name="Owner",
+            password="OrbitPass5481",
+            role=User.RoleChoices.ADMIN,
+            is_staff=True,
+            is_superuser=True,
+        )
+
+    def test_register_requires_admin_authentication(self):
+        response = self.client.post(
+            reverse("register"),
+            {
+                "email": "user@example.com",
+                "full_name": "User One",
+                "role": "agent",
+                "password": "OrbitPass5481",
+                "password_confirm": "OrbitPass5481",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_admin_can_create_subscription_user(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(
+            reverse("register"),
+            {
+                "email": "user@example.com",
+                "full_name": "User One",
+                "role": "agent",
+                "password": "OrbitPass5481",
+                "password_confirm": "OrbitPass5481",
+                "plan_code": "pro",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        created_user = User.objects.get(email="user@example.com")
+        self.assertFalse(created_user.is_staff)
+        self.assertFalse(created_user.is_superuser)
+        self.assertEqual(created_user.subscription.plan.code, "pro")
+
+
+class BootstrapAdminCommandTests(TestCase):
+    def test_command_creates_admin_user(self):
+        stdout = StringIO()
+
+        call_command(
+            "bootstrap_admin",
+            email="owner@example.com",
+            password="Debu@0218",
+            full_name="Primary Admin",
+            stdout=stdout,
+        )
+
+        user = User.objects.get(email="owner@example.com")
+        self.assertEqual(user.role, User.RoleChoices.ADMIN)
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.check_password("Debu@0218"))
+        self.assertEqual(user.subscription.plan.code, "pro")
+        self.assertIn("Created admin account", stdout.getvalue())
+
+    def test_command_updates_existing_user(self):
+        user = User.objects.create_user(
+            email="owner@example.com",
+            full_name="Regular User",
+            password="OldPass@123",
+            role=User.RoleChoices.AGENT,
+        )
+
+        call_command(
+            "bootstrap_admin",
+            email=user.email,
+            password="Debu@0218",
+            full_name="Platform Owner",
+            plan_code="free",
+        )
+
+        user.refresh_from_db()
+        self.assertEqual(user.full_name, "Platform Owner")
+        self.assertEqual(user.role, User.RoleChoices.ADMIN)
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.check_password("Debu@0218"))
+        self.assertEqual(user.subscription.plan.code, "free")
 
 
 @override_settings(

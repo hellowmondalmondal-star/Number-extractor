@@ -1,20 +1,51 @@
 import os
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 
 import dj_database_url
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-change-me")
-DEBUG = False
-ALLOWED_HOSTS = ["*"]
-SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000").rstrip("/")
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip() for origin in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if origin.strip()
-]
+
+def env_bool(name, default=False):
+    return os.getenv(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def env_list(name, default=""):
+    return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
+
+
+DJANGO_ENV = os.getenv("DJANGO_ENV", "development").strip().lower()
+DEFAULT_SECRET_KEY = "django-insecure-change-me"
+DEFAULT_SITE_URL = "http://127.0.0.1:8000"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", DEFAULT_SECRET_KEY)
+DEBUG = env_bool("DJANGO_DEBUG", default=DJANGO_ENV != "production")
+SITE_URL = os.getenv("SITE_URL", DEFAULT_SITE_URL).rstrip("/")
+
+default_allowed_hosts = ["127.0.0.1", "localhost"]
+site_host = urlparse(SITE_URL).hostname
+if site_host and site_host not in default_allowed_hosts:
+    default_allowed_hosts.append(site_host)
+
+configured_allowed_hosts = env_list("DJANGO_ALLOWED_HOSTS")
+ALLOWED_HOSTS = configured_allowed_hosts or env_list(
+    "DJANGO_ALLOWED_HOSTS",
+    ",".join(default_allowed_hosts if DEBUG else ([site_host] if site_host else [])),
+)
+
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+if not CSRF_TRUSTED_ORIGINS and SITE_URL:
+    CSRF_TRUSTED_ORIGINS = [SITE_URL]
+
+if DJANGO_ENV == "production" and SECRET_KEY == DEFAULT_SECRET_KEY:
+    raise ImproperlyConfigured("Set DJANGO_SECRET_KEY before running in production.")
+
+if DJANGO_ENV == "production" and not configured_allowed_hosts and SITE_URL == DEFAULT_SITE_URL:
+    raise ImproperlyConfigured("Set DJANGO_ALLOWED_HOSTS or SITE_URL before running in production.")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -97,8 +128,19 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"]
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if not DEBUG
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        ),
+    },
+}
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -150,3 +192,18 @@ PRO_PLAN_DAILY_NUMBER_LIMIT = int(os.getenv("PRO_PLAN_DAILY_NUMBER_LIMIT", "0"))
 ADMIN_SITE_HEADER = "Number Extractor Administration"
 ADMIN_SITE_TITLE = "Number Extractor Admin"
 ADMIN_INDEX_TITLE = "Platform Operations"
+
+USE_X_FORWARDED_HOST = env_bool("DJANGO_USE_X_FORWARDED_HOST", default=DJANGO_ENV == "production")
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", default=DJANGO_ENV == "production")
+SESSION_COOKIE_SECURE = env_bool("DJANGO_SESSION_COOKIE_SECURE", default=DJANGO_ENV == "production")
+CSRF_COOKIE_SECURE = env_bool("DJANGO_CSRF_COOKIE_SECURE", default=DJANGO_ENV == "production")
+SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_SECURE_HSTS_SECONDS", "31536000" if DJANGO_ENV == "production" else "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool(
+    "DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS",
+    default=DJANGO_ENV == "production",
+)
+SECURE_HSTS_PRELOAD = env_bool("DJANGO_SECURE_HSTS_PRELOAD", default=False)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_REFERRER_POLICY = "same-origin"

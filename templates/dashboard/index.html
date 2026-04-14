@@ -127,11 +127,11 @@
 <body>
     <main class="wrap">
         <section class="hero">
-            <div class="eyebrow">Production SaaS Ready</div>
-            <h1>Phone Number Extraction Platform</h1>
+            <div class="eyebrow">Admin Managed SaaS</div>
+            <h1>Phone Number Extraction Workspace</h1>
             <p>
-                Django, DRF, JWT auth, subscription limits, uploads, OCR-powered extraction,
-                Excel exports, and admin activity tracking are wired and ready for deployment.
+                Admins manage accounts, plans, and platform controls from Django admin.
+                Subscription users sign in to the workspace, upload files, process them, and download Excel results.
             </p>
             <div class="actions">
                 <a class="button primary" href="/app/">Open Product Workspace</a>
@@ -141,27 +141,17 @@
 
         <section class="grid">
             <article class="card">
-                <div class="label">Total Users</div>
-                <div class="value">{{ total_users }}</div>
+                <div class="label">Admin Flow</div>
+                <p>Create the admin with <strong>createsuperuser</strong>, then manage users and subscriptions in <strong>/admin/</strong>.</p>
             </article>
             <article class="card">
-                <div class="label">Total Uploads</div>
-                <div class="value">{{ total_uploads }}</div>
+                <div class="label">User Flow</div>
+                <p>Users only need the workspace at <strong>/app/</strong> to log in, upload, process, and download results.</p>
             </article>
             <article class="card">
-                <div class="label">Completed Uploads</div>
-                <div class="value">{{ completed_uploads }}</div>
+                <div class="label">Backend Control</div>
+                <p>Plans, permissions, uploads, results, and activity logs remain available from the Django backend.</p>
             </article>
-            <article class="card">
-                <div class="label">Numbers Extracted</div>
-                <div class="value">{{ total_numbers_extracted }}</div>
-            </article>
-        </section>
-
-        <section class="footer">
-            Admin API lives under <strong>/api/admin/*</strong>. Core workflow: register or create an admin,
-            log in for JWT tokens, upload a file, process it, then download the generated Excel result.
-            The browser workspace is available at <strong>/app/</strong>.
         </section>
     </main>
 </body>

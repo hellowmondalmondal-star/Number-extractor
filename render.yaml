@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: number-extractor
+    runtime: docker
+    plan: starter
+    region: oregon
+    healthCheckPath: /
+    autoDeployTrigger: checksPass
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    disk:
+      name: media
+      mountPath: /app/media
+      sizeGB: 1
+    envVars:
+      - key: DJANGO_ENV
+        value: production
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_TIME_ZONE
+        value: Asia/Dubai
+      - key: DATABASE_URL
+        fromDatabase:
+          name: number-extractor-db
+          property: connectionString
+      - key: SITE_URL
+        sync: false
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_FULL_NAME
+        value: Primary Admin
+      - key: ADMIN_PLAN_CODE
+        value: pro
+
+databases:
+  - name: number-extractor-db
+    plan: basic-256mb
+    region: oregon
+    databaseName: number_extractor

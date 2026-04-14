@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
-from apps.subscriptions.services import enforce_daily_file_limit, ensure_default_plans
+from apps.subscriptions.services import enforce_daily_file_limit, enforce_daily_number_limit, ensure_default_plans
 
 User = get_user_model()
 
@@ -21,4 +21,19 @@ class SubscriptionServiceTests(TestCase):
         subscription = enforce_daily_file_limit(user)
         self.assertEqual(subscription.plan.code, "free")
 
-# Create your tests here.
+    @override_settings(
+        FREE_PLAN_DAILY_FILE_LIMIT=1,
+        FREE_PLAN_DAILY_NUMBER_LIMIT=1,
+    )
+    def test_admin_users_are_not_limited_by_subscription_rules(self):
+        admin = User.objects.create_user(
+            email="admin@example.com",
+            full_name="Admin User",
+            password="password123",
+            role=User.RoleChoices.ADMIN,
+            is_staff=True,
+            is_superuser=True,
+        )
+
+        self.assertIsNone(enforce_daily_file_limit(admin))
+        self.assertIsNone(enforce_daily_number_limit(admin, incoming_total=999))

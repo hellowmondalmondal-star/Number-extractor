@@ -64,6 +64,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         role = validated_data.get("role", User.RoleChoices.AGENT)
         if role == User.RoleChoices.ADMIN:
             validated_data["is_staff"] = True
+            validated_data["is_superuser"] = True
+        else:
+            validated_data["is_staff"] = False
+            validated_data["is_superuser"] = False
         user = User.objects.create_user(password=password, **validated_data)
         assign_user_plan(user, plan_code)
         return user

@@ -25,18 +25,13 @@ class AuthViewSet(viewsets.ViewSet):
     def get_permissions(self):
         if self.action in {"login", "forgot_password", "reset_password"}:
             return [permissions.AllowAny()]
-        if self.action == "register" and not User.objects.exists():
-            return [permissions.AllowAny()]
         if self.action == "register":
             return [IsAdminUserRole()]
         return [permissions.IsAuthenticated()]
 
     def register(self, request):
         payload = request.data.copy()
-
-        if not User.objects.exists():
-            payload["role"] = User.RoleChoices.ADMIN
-        elif not request.user.is_admin:
+        if not request.user.is_admin:
             raise PermissionDenied("Only admins can create user accounts.")
 
         serializer = RegisterSerializer(data=payload)
