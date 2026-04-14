@@ -21,6 +21,10 @@ services:
         generateValue: true
       - key: DJANGO_TIME_ZONE
         value: Asia/Dubai
+      - key: GUNICORN_TIMEOUT
+        value: "180"
+      - key: UPLOAD_PROCESSING_TIMEOUT_SECONDS
+        value: "180"
       - key: DATABASE_URL
         fromDatabase:
           name: number-extractor-db

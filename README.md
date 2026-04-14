@@ -97,6 +97,10 @@ Copy `.env.example` and update the values you need. Important settings:
 - `DJANGO_CSRF_TRUSTED_ORIGINS` with your HTTPS origin(s)
 - `DATABASE_URL` for PostgreSQL in production
 - `SITE_URL` pointing to the deployed base URL
+- `UPLOAD_PROCESSING_TIMEOUT_SECONDS` to control when a stuck processing job is marked failed
+- `GUNICORN_TIMEOUT` to give longer-running extractions enough time to finish on your hosting plan
+
+Production startup now refuses to use the SQLite fallback. If `DATABASE_URL` is missing or points to SQLite, the app will fail fast instead of booting with ephemeral data.
 
 ## Email
 
@@ -143,6 +147,7 @@ Notes:
 
 - The blueprint uses a `starter` web service and a persistent disk mounted at `/app/media` so uploads and generated Excel files survive redeploys.
 - If you switch the service to a free plan, Render's filesystem becomes ephemeral and files under `/app/media` will not persist across redeploys or restarts.
+- This app should use Render PostgreSQL in production. Do not rely on SQLite for deployed data.
 - Keep `ADMIN_PASSWORD` only in Render environment variables. Do not commit it to git, `.env.example`, or `render.yaml`.
 
 ## GitHub Readiness

@@ -7,7 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from apps.extraction.services import extract_numbers, normalize_phone_number
+from apps.extraction.services import extract_numbers, extract_numbers_from_chunks, normalize_phone_number
 from apps.uploads.models import UploadedFile
 
 User = get_user_model()
@@ -21,6 +21,17 @@ class ExtractionServiceTests(TestCase):
     def test_extract_numbers_removes_duplicates(self):
         text = "Call +91 98765 43210 or 9876543210 or +971-50-123-4567."
         self.assertEqual(extract_numbers(text), ["+919876543210", "+971501234567"])
+
+    def test_extract_numbers_keeps_separate_rows_as_separate_numbers(self):
+        text = "phone\n9876543210\n9876543211\n"
+        self.assertEqual(extract_numbers(text), ["+919876543210", "+919876543211"])
+
+    def test_extract_numbers_from_chunks_deduplicates_across_streamed_content(self):
+        chunks = ["+91 98765 43210", " and 9876543210", " plus +971 50 123 4567"]
+        self.assertEqual(
+            extract_numbers_from_chunks(chunks),
+            ["+919876543210", "+971501234567"],
+        )
 
 
 class ExtractionApiTests(TestCase):
