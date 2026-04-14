@@ -13,6 +13,7 @@ from apps.subscriptions.serializers import UserSubscriptionSerializer
 from apps.subscriptions.services import get_or_create_user_subscription
 from apps.uploads.models import UploadedFile
 from apps.uploads.serializers import UploadSerializer
+from apps.uploads.services import mark_stale_processing_uploads
 
 User = get_user_model()
 
@@ -29,10 +30,12 @@ class DashboardViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def me(self, request):
-        uploads = UploadedFile.objects.filter(user=request.user).select_related("user", "extraction_result")[:5]
+        user_uploads = UploadedFile.objects.filter(user=request.user)
+        mark_stale_processing_uploads(user_uploads)
+        uploads = user_uploads.select_related("user", "extraction_result")[:5]
         results = ExtractionResult.objects.filter(user=request.user).select_related("upload")[:5]
         stats = {
-            "uploads": UploadedFile.objects.filter(user=request.user).count(),
+            "uploads": user_uploads.count(),
             "results": ExtractionResult.objects.filter(user=request.user).count(),
             "numbers_extracted": ExtractionResult.objects.filter(user=request.user).aggregate(
                 total=Sum("total_numbers")
@@ -64,6 +67,7 @@ class AdminViewSet(viewsets.ViewSet):
         return response.Response(AdminUserSerializer(queryset, many=True).data)
 
     def stats(self, request):
+        mark_stale_processing_uploads(UploadedFile.objects.all())
         return response.Response(build_admin_stats())
 
     def activity(self, request):

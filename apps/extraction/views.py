@@ -12,6 +12,7 @@ from apps.extraction.models import ExtractionResult
 from apps.extraction.serializers import ExtractionResultSerializer
 from apps.extraction.services import process_uploaded_file
 from apps.uploads.models import UploadedFile
+from apps.uploads.services import mark_stale_processing_upload
 
 
 class ExtractionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -33,6 +34,9 @@ class ExtractionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
         uploaded_file = get_object_or_404(UploadedFile.objects.select_related("user"), pk=file_id)
         if not (request.user.is_admin or uploaded_file.user_id == request.user.id):
             raise PermissionDenied("You can only process your own uploads.")
+        mark_stale_processing_upload(uploaded_file)
+        if uploaded_file.status == UploadedFile.StatusChoices.PROCESSING:
+            raise ValidationError("This file is already processing. Please wait for it to finish.")
 
         try:
             result = process_uploaded_file(uploaded_file)

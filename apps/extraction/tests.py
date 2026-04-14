@@ -57,3 +57,28 @@ class ExtractionApiTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("Daily extracted number limit reached", str(response.data))
+
+    @override_settings(UPLOAD_PROCESSING_TIMEOUT_SECONDS=60)
+    def test_process_endpoint_rejects_recent_processing_upload(self):
+        user = User.objects.create_user(
+            email="busy@example.com",
+            full_name="Busy User",
+            password="password123",
+        )
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        csv_bytes = b"phone\n9876543210\n"
+        uploaded_file = UploadedFile.objects.create(
+            user=user,
+            file=SimpleUploadedFile("busy.csv", csv_bytes, content_type="text/csv"),
+            original_name="busy.csv",
+            file_size=len(csv_bytes),
+            file_type=UploadedFile.FileTypeChoices.CSV,
+            status=UploadedFile.StatusChoices.PROCESSING,
+        )
+
+        response = client.post(reverse("process-upload", args=[uploaded_file.id]))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("already processing", str(response.data).lower())
