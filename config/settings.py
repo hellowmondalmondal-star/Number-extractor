@@ -19,32 +19,116 @@ def env_list(name, default=""):
     return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
 
 
+LOCAL_HOSTNAMES = {"127.0.0.1", "localhost", "::1"}
+
+
+def unique_values(values):
+    return list(dict.fromkeys(value for value in values if value))
+
+
+def normalize_host(value):
+    candidate = value.strip().rstrip("/")
+    if not candidate:
+        return ""
+
+    parsed = urlparse(candidate if "://" in candidate else f"//{candidate}")
+    return (parsed.hostname or candidate).strip()
+
+
+def normalize_origin(value):
+    candidate = value.strip().rstrip("/")
+    if not candidate:
+        return ""
+
+    parsed = urlparse(candidate if "://" in candidate else f"//{candidate}")
+    host = parsed.hostname
+    if not host or host == "*":
+        return ""
+
+    if host.startswith("."):
+        host = f"*{host}"
+
+    base_host = host[2:] if host.startswith("*.") else host.lstrip(".")
+    scheme = parsed.scheme or ("http" if base_host in LOCAL_HOSTNAMES else "https")
+    if ":" in host and not host.startswith("[") and not host.startswith("*."):
+        host = f"[{host}]"
+
+    port = f":{parsed.port}" if parsed.port else ""
+    return f"{scheme}://{host}{port}"
+
+
+def normalize_hosts(values):
+    return unique_values(normalize_host(value) for value in values)
+
+
+def normalize_origins(values):
+    return unique_values(normalize_origin(value) for value in values)
+
+
+def build_allowed_hosts(*, configured_hosts, site_url, debug, render_external_hostname=""):
+    resolved_hosts = []
+
+    if debug:
+        resolved_hosts.extend(["127.0.0.1", "localhost"])
+
+    site_host = normalize_host(site_url)
+    if site_host and (debug or site_url != DEFAULT_SITE_URL):
+        resolved_hosts.append(site_host)
+
+    render_host = normalize_host(render_external_hostname)
+    if render_host:
+        resolved_hosts.append(render_host)
+
+    return unique_values(normalize_hosts(configured_hosts) + resolved_hosts)
+
+
+def build_csrf_trusted_origins(*, configured_origins, site_url, debug, render_external_hostname=""):
+    resolved_origins = []
+
+    site_origin = normalize_origin(site_url)
+    if site_origin and (debug or site_origin != DEFAULT_SITE_URL):
+        resolved_origins.append(site_origin)
+
+    render_origin = normalize_origin(render_external_hostname)
+    if render_origin:
+        resolved_origins.append(render_origin)
+
+    return unique_values(normalize_origins(configured_origins) + resolved_origins)
+
+
 DJANGO_ENV = os.getenv("DJANGO_ENV", "development").strip().lower()
 DEFAULT_SECRET_KEY = "django-insecure-change-me"
 DEFAULT_SITE_URL = "http://127.0.0.1:8000"
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", DEFAULT_SECRET_KEY)
 DEBUG = env_bool("DJANGO_DEBUG", default=DJANGO_ENV != "production")
-SITE_URL = os.getenv("SITE_URL", DEFAULT_SITE_URL).rstrip("/")
+SITE_URL = normalize_origin(os.getenv("SITE_URL", DEFAULT_SITE_URL)) or DEFAULT_SITE_URL
+RENDER_EXTERNAL_HOSTNAME = normalize_host(os.getenv("RENDER_EXTERNAL_HOSTNAME", ""))
 
-default_allowed_hosts = ["127.0.0.1", "localhost"]
-site_host = urlparse(SITE_URL).hostname
-if site_host and site_host not in default_allowed_hosts:
-    default_allowed_hosts.append(site_host)
-
-configured_allowed_hosts = env_list("DJANGO_ALLOWED_HOSTS")
-ALLOWED_HOSTS = configured_allowed_hosts or env_list(
-    "DJANGO_ALLOWED_HOSTS",
-    ",".join(default_allowed_hosts if DEBUG else ([site_host] if site_host else [])),
+configured_allowed_hosts = normalize_hosts(env_list("DJANGO_ALLOWED_HOSTS"))
+ALLOWED_HOSTS = build_allowed_hosts(
+    configured_hosts=configured_allowed_hosts,
+    site_url=SITE_URL,
+    debug=DEBUG,
+    render_external_hostname=RENDER_EXTERNAL_HOSTNAME,
 )
 
-CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
-if not CSRF_TRUSTED_ORIGINS and SITE_URL:
-    CSRF_TRUSTED_ORIGINS = [SITE_URL]
+configured_csrf_trusted_origins = normalize_origins(env_list("DJANGO_CSRF_TRUSTED_ORIGINS"))
+CSRF_TRUSTED_ORIGINS = build_csrf_trusted_origins(
+    configured_origins=configured_csrf_trusted_origins,
+    site_url=SITE_URL,
+    debug=DEBUG,
+    render_external_hostname=RENDER_EXTERNAL_HOSTNAME,
+)
 
 if DJANGO_ENV == "production" and SECRET_KEY == DEFAULT_SECRET_KEY:
     raise ImproperlyConfigured("Set DJANGO_SECRET_KEY before running in production.")
 
-if DJANGO_ENV == "production" and not configured_allowed_hosts and SITE_URL == DEFAULT_SITE_URL:
+if (
+    DJANGO_ENV == "production"
+    and not configured_allowed_hosts
+    and not RENDER_EXTERNAL_HOSTNAME
+    and SITE_URL == DEFAULT_SITE_URL
+):
     raise ImproperlyConfigured("Set DJANGO_ALLOWED_HOSTS or SITE_URL before running in production.")
 
 INSTALLED_APPS = [
