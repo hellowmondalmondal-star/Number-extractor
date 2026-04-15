@@ -1,8 +1,10 @@
 from pathlib import Path
 
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
@@ -31,12 +33,33 @@ class ExtractionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
         return context
 
     def process(self, request, file_id):
-        uploaded_file = get_object_or_404(UploadedFile.objects.select_related("user"), pk=file_id)
-        if not (request.user.is_admin or uploaded_file.user_id == request.user.id):
-            raise PermissionDenied("You can only process your own uploads.")
-        mark_stale_processing_upload(uploaded_file)
-        if uploaded_file.status == UploadedFile.StatusChoices.PROCESSING:
-            raise ValidationError("This file is already processing. Please wait for it to finish.")
+        with transaction.atomic():
+            uploaded_file = get_object_or_404(
+                UploadedFile.objects.select_for_update().select_related("user"),
+                pk=file_id,
+            )
+            if not (request.user.is_admin or uploaded_file.user_id == request.user.id):
+                raise PermissionDenied("You can only process your own uploads.")
+
+            mark_stale_processing_upload(uploaded_file)
+            try:
+                existing_result = uploaded_file.extraction_result
+            except UploadedFile.extraction_result.RelatedObjectDoesNotExist:
+                existing_result = None
+
+            if uploaded_file.status == UploadedFile.StatusChoices.PROCESSING:
+                raise ValidationError("This file is already processing. Please wait for it to finish.")
+
+            # Reuse the existing result when a queued duplicate request lands after the
+            # first extraction already completed.
+            if uploaded_file.status == UploadedFile.StatusChoices.COMPLETED and existing_result:
+                serializer = self.get_serializer(existing_result)
+                return Response(serializer.data)
+
+            uploaded_file.status = UploadedFile.StatusChoices.PROCESSING
+            uploaded_file.processed_at = timezone.now()
+            uploaded_file.error_message = ""
+            uploaded_file.save(update_fields=["status", "processed_at", "error_message"])
 
         try:
             result = process_uploaded_file(uploaded_file)

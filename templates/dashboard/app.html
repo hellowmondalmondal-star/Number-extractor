@@ -146,6 +146,14 @@
             transform: translateY(-1px);
         }
 
+        button:disabled,
+        .button-link:disabled {
+            cursor: not-allowed;
+            opacity: 0.62;
+            transform: none;
+            box-shadow: none;
+        }
+
         .primary {
             background: linear-gradient(135deg, var(--brand), #d47d57);
             color: white;
@@ -703,6 +711,8 @@
             user: JSON.parse(localStorage.getItem("number_extractor_user") || "null"),
             resetUid: searchParams.get("reset_uid") || "",
             resetToken: searchParams.get("reset_token") || "",
+            uploads: [],
+            processingUploads: new Set(),
         };
 
         const els = {
@@ -871,7 +881,20 @@
                     <td data-label="Uploaded">${formatDate(upload.upload_time)}</td>
                     <td data-label="Action">
                         <div class="mini-actions">
-                            <button class="secondary" type="button" onclick="processUpload('${upload.id}')">Process</button>
+                            <button
+                                class="secondary"
+                                type="button"
+                                onclick="processUpload('${upload.id}')"
+                                ${upload.status === "processing" || upload.status === "completed" || state.processingUploads.has(upload.id) ? "disabled" : ""}
+                            >
+                                ${state.processingUploads.has(upload.id)
+                                    ? "Starting..."
+                                    : upload.status === "processing"
+                                        ? "Processing..."
+                                        : upload.status === "completed"
+                                            ? "Processed"
+                                            : "Process"}
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -979,6 +1002,7 @@
 
                 const uploadItems = Array.isArray(uploads.results) ? uploads.results : uploads;
                 const resultItems = Array.isArray(results.results) ? results.results : results;
+                state.uploads = uploadItems;
 
                 renderUploads(uploadItems);
                 renderResults(resultItems);
@@ -1122,12 +1146,21 @@
         });
 
         window.processUpload = async function processUpload(uploadId) {
+            if (state.processingUploads.has(uploadId)) {
+                return;
+            }
+
+            state.processingUploads.add(uploadId);
+            renderUploads(state.uploads);
             try {
                 await api(`/api/process/${uploadId}`, { method: "POST" });
                 setMessage("Extraction complete.", "success");
                 await loadWorkspace();
             } catch (error) {
                 setMessage(error.message, "error");
+            } finally {
+                state.processingUploads.delete(uploadId);
+                renderUploads(state.uploads);
             }
         };
 

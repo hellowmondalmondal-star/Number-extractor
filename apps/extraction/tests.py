@@ -7,6 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+from apps.extraction.models import ExtractionResult
 from apps.extraction.services import extract_numbers, extract_numbers_from_chunks, normalize_phone_number
 from apps.uploads.models import UploadedFile
 
@@ -93,3 +94,35 @@ class ExtractionApiTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("already processing", str(response.data).lower())
+
+    def test_process_endpoint_reuses_existing_completed_result(self):
+        user = User.objects.create_user(
+            email="done@example.com",
+            full_name="Done User",
+            password="password123",
+        )
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        csv_bytes = b"phone\n9876543210\n"
+        uploaded_file = UploadedFile.objects.create(
+            user=user,
+            file=SimpleUploadedFile("done.csv", csv_bytes, content_type="text/csv"),
+            original_name="done.csv",
+            file_size=len(csv_bytes),
+            file_type=UploadedFile.FileTypeChoices.CSV,
+            status=UploadedFile.StatusChoices.COMPLETED,
+        )
+        result = ExtractionResult.objects.create(
+            user=user,
+            upload=uploaded_file,
+            numbers=["+919876543210"],
+            total_numbers=1,
+        )
+
+        with patch("apps.extraction.views.process_uploaded_file") as mocked_process:
+            response = client.post(reverse("process-upload", args=[uploaded_file.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(str(response.data["id"]), str(result.id))
+        mocked_process.assert_not_called()

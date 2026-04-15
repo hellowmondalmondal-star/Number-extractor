@@ -141,10 +141,11 @@ def export_numbers_to_excel(result):
 
 
 def process_uploaded_file(uploaded_file):
-    uploaded_file.status = UploadedFile.StatusChoices.PROCESSING
-    uploaded_file.processed_at = timezone.now()
-    uploaded_file.error_message = ""
-    uploaded_file.save(update_fields=["status", "processed_at", "error_message"])
+    if uploaded_file.status != UploadedFile.StatusChoices.PROCESSING:
+        uploaded_file.status = UploadedFile.StatusChoices.PROCESSING
+        uploaded_file.processed_at = timezone.now()
+        uploaded_file.error_message = ""
+        uploaded_file.save(update_fields=["status", "processed_at", "error_message"])
 
     try:
         numbers = extract_numbers_from_upload(uploaded_file)
