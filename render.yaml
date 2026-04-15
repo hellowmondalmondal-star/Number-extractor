@@ -23,6 +23,10 @@ services:
         value: Asia/Dubai
       - key: GUNICORN_TIMEOUT
         value: "180"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: GUNICORN_THREADS
+        value: "4"
       - key: UPLOAD_PROCESSING_TIMEOUT_SECONDS
         value: "180"
       - key: DATABASE_URL
