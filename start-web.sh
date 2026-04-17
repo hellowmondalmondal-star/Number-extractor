@@ -6,6 +6,10 @@ WEB_CONCURRENCY="${WEB_CONCURRENCY:-1}"
 GUNICORN_THREADS="${GUNICORN_THREADS:-4}"
 GUNICORN_TIMEOUT="${GUNICORN_TIMEOUT:-180}"
 
+python manage.py migrate --noinput
+python manage.py bootstrap_admin --skip-if-missing
+python manage.py collectstatic --noinput
+
 exec gunicorn config.wsgi:application \
   --bind "0.0.0.0:${PORT}" \
   --worker-class gthread \
